@@ -1,8 +1,10 @@
 #!/bin/sh
 
+echo "Launching WaybackProxy"
 echo LISTEN_PORT=$LISTEN_PORT > /config.py
 echo DATE=$DATE >> /config.py
 echo DATE_TOLERANCE=$DATE_TOLERANCE >> /config.py
+echo FLUX_PATH=\"$FLUX_PATH\" >> /config.py
 echo GEOCITIES_FIX=$GEOCITIES_FIX  >> /config.py
 echo QUICK_IMAGES=$QUICK_IMAGES  >> /config.py
 echo WAYBACK_API=$WAYBACK_API  >> /config.py
@@ -13,4 +15,4 @@ echo SETTINGS_PAGE=$SETTINGS_PAGE  >> /config.py
 echo config.py:
 cat /config.py
 
-python /waybackproxy.py
+python3 /waybackproxy.py

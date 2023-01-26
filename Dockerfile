@@ -6,13 +6,14 @@
 
 FROM python:3
 
-MAINTAINER richardg867
+MAINTAINER steve-downing
 LABEL description = "HTTP Proxy for tunneling requests through the Internet Archive Wayback Machine"
 
 # Setup config.py
 ENV LISTEN_PORT=8888
 ENV DATE='20011025'
-ENV DATE_TOLERANCE=365
+ENV DATE_TOLERANCE=500
+ENV FLUX_PATH='http://localhost/flux'
 ENV GEOCITIES_FIX=True
 ENV QUICK_IMAGES=True
 ENV WAYBACK_API=True
@@ -25,6 +26,6 @@ ADD error.html /
 ADD lrudict.py /
 ADD waybackproxy.py /
 
-EXPOSE 8080
+EXPOSE 8888
 
 CMD [ "sh" , "/startup.sh" ]

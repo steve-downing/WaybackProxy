@@ -1,8 +1,16 @@
+This project is forked from https://github.com/richardg867/WaybackProxy. Thanks to richardg867 for putting together the original proxy! I've added support for dynamic changes to the Wayback date.
+
 # WaybackProxy
 
 WaybackProxy is a retro-friendly HTTP proxy which retrieves pages from the [Internet Archive Wayback Machine](http://web.archive.org) or [OoCities](http://www.oocities.org) and delivers them in their original form, without toolbars, scripts and other extraneous content that may confuse retro browsers.
 
 ![1999 Google viewed on Internet Explorer 4.0 on Windows 95](http://i.imgur.com/tXsLc6O.png)
+
+## Flux
+
+This fork of WaybackProxy allows the admin to optionally configure a 'Flux' REST endpoint that specifies the Wayback date. This endpoint will be accessed on each web request, and can be changed while the proxy is running. The response is expected to be in "application/json" data type, and consist only of a date in YYYYMMDD format. Feel free to specify your endpoint in `config.py` and `waybackproxy.py`.
+
+Setup of this endpoint is left as an exercise for the admin. I personally have a Raspberry Pi hosting the endpoint that has listens for input from a dial on a macropad.
 
 ## Setup
 
@@ -41,6 +49,7 @@ When deploying via Docker, the config.py script can be customized by specifying 
 | `LISTEN_PORT` | 8888 | Listen port for the HTTP proxy |
 | `DATE` | 20011025 | Date to get pages from Wayback. YYYYMMDD, YYYYMM and YYYY formats are accepted, the more specific the better.|
 | `DATE_TOLERANCE` | 365 | Allow the client to load pages and assets up to X days after DATE. Set to None to disable this restriction.|
+| `FLUX_PATH` | http://localhost/flux | REST endpoint that allows the proxy to change the Wayback date.|
 | `GEOCITIES_FIX` | True | Send Geocities requests to oocities.org if set to True. |
 | `QUICK_IMAGES` | True | Use the original Wayback Machine URL as a shortcut when loading images. |
 | `WAYBACK_API` | True | Use the Wayback Machine Availability API to find the closest available snapshot to the desired date, instead of directly requesting that date.|

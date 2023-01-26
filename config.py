@@ -7,7 +7,11 @@ DATE = '20011025' # <- Windows XP release date in case you're wondering
 
 # Allow the client to load pages and assets up to X days after DATE.
 # Set to None to disable this restriction.
-DATE_TOLERANCE = 365
+DATE_TOLERANCE = 500
+
+# URL for the Flux project that modifies the effective date of Wayback
+# requests.
+FLUX_PATH = 'http://localhost/flux'
 
 # Send Geocities requests to oocities.org if set to True.
 GEOCITIES_FIX = True

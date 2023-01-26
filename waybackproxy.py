@@ -2,6 +2,8 @@
 import base64, datetime, json, lrudict, re, socket, socketserver, string, sys, threading, traceback, urllib.request, urllib.error, urllib.parse
 from config import *
 
+USE_FLUX = not not FLUX_PATH
+
 class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 	"""TCPServer with ThreadingMixIn added."""
 	pass
@@ -16,6 +18,9 @@ class SharedState:
 		# Create internal LRU dictionary for date availability.
 		self.availability_cache = lrudict.LRUDict(maxduration=86400, maxsize=1024) if WAYBACK_API else None
 
+		# Keep track of the date in case we lose contact with the Flux server.
+		self.cached_date = DATE
+
 shared_state = SharedState()
 
 class Handler(socketserver.BaseRequestHandler):
@@ -27,6 +32,18 @@ class Handler(socketserver.BaseRequestHandler):
 
 		# Store a local pointer to SharedState.
 		self.shared_state = shared_state
+
+	def get_flux_modified_date(self):
+		date = self.shared_state.cached_date
+
+		try:
+			r = urllib.request.urlopen(FLUX_PATH)
+			date = int(r.read())
+			r.close()
+		except:
+			date = self.shared_state.cached_date
+
+		return date
 
 	def handle(self):
 		"""Handle a request."""
@@ -46,7 +63,12 @@ class Handler(socketserver.BaseRequestHandler):
 		# read out the headers
 		request_host = None
 		pac_host = '" + location.host + ":' + str(LISTEN_PORT) # may not actually work
+
 		effective_date = DATE
+		if USE_FLUX:
+			effective_date = self.get_flux_modified_date()
+			self.shared_state.cached_date = effective_date
+
 		auth = None
 		while line.strip() != '':
 			line = f.readline()
@@ -89,7 +111,7 @@ class Handler(socketserver.BaseRequestHandler):
 
 		# get cached date for redirects, if available
 		original_date = effective_date
-		effective_date = self.shared_state.date_cache.get(str(effective_date) + '\x00' + str(archived_url), effective_date)
+		effective_date = self.shared_state.date_cache.get(str(effective_date) + '\x00' + str(archived_url) + '\x00' + str(original_date), effective_date)
 
 		# get date from username:password, if available
 		if auth:
@@ -125,17 +147,17 @@ class Handler(socketserver.BaseRequestHandler):
 					split = request_url.split('/')
 					effective_date = split[4]
 					archived_url = '/'.join(split[5:])
-					_print('[>] [QI]', archived_url)
+					_print('[>] [QI]', effective_date, archived_url)
 			elif GEOCITIES_FIX and hostname == 'www.geocities.com':
 				# Apply GEOCITIES_FIX and pass it through.
-				_print('[>]', archived_url)
+				_print('[>]', effective_date, archived_url)
 
 				split = archived_url.split('/')
 				hostname = split[2] = 'www.oocities.org'
 				request_url = '/'.join(split)
 			else:
 				# Get from the Wayback Machine.
-				_print('[>]', archived_url)
+				_print('[>]', effective_date, archived_url)
 
 				request_url = 'http://web.archive.org/web/{0}if_/{1}'.format(effective_date, archived_url)
 
@@ -155,7 +177,7 @@ class Handler(socketserver.BaseRequestHandler):
 
 					# Check availability LRU cache.
 					availability_url = '/'.join(split[5:])
-					new_url = self.shared_state.availability_cache.get(availability_url, None)
+					new_url = self.shared_state.availability_cache.get(availability_url + '#' + str(original_date), None)
 					if new_url:
 						# In cache => replace URL immediately.
 						request_url = new_url
@@ -182,7 +204,7 @@ class Handler(socketserver.BaseRequestHandler):
 							new_url = '/'.join(split)
 
 							# Replace URL and add it to the availability cache.
-							request_url = self.shared_state.availability_cache[availability_url] = new_url
+							request_url = self.shared_state.availability_cache[availability_url + '#' + original_date] = new_url
 
 			# Start fetching the URL.
 			conn = urllib.request.urlopen(request_url)
@@ -325,7 +347,7 @@ class Handler(socketserver.BaseRequestHandler):
 						archived_url = self.sanitize_redirect(match.group(2).decode('ascii', 'ignore'))
 
 						# Add URL to the date LRU cache.
-						self.shared_state.date_cache[str(effective_date) + '\x00' + archived_url] = match.group(1).decode('ascii', 'ignore')
+						self.shared_state.date_cache[str(effective_date) + '\x00' + archived_url + '\x00' + str(original_date)] = match.group(1).decode('ascii', 'ignore')
 
 						# Get the original HTTP redirect code.
 						match = re.search(b'''<p class="code shift red">Got an HTTP ([0-9]+)''', data)
@@ -374,7 +396,7 @@ class Handler(socketserver.BaseRequestHandler):
 						orig_url = match.group(2)
 						if orig_url[:8] == b'https://':
 							orig_url = b'http://' + orig_url[8:]
-						self.shared_state.date_cache[str(effective_date) + '\x00' + orig_url.decode('ascii', 'ignore')] = match.group(1).decode('ascii', 'ignore')
+						self.shared_state.date_cache[str(effective_date) + '\x00' + orig_url.decode('ascii', 'ignore') + '\x00' + str(original_date)] = match.group(1).decode('ascii', 'ignore')
 						return orig_url
 					data = re.sub(b'''(?:(?:https?:)?//web.archive.org)?/web/([^/]+)/([^"\\'#<>]+)''', add_to_date_cache, data)
 			elif mode == 1: # oocities

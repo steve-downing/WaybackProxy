@@ -50,7 +50,7 @@ class Handler(socketserver.BaseRequestHandler):
 
 		# readline is pretty convenient
 		f = self.request.makefile()
-		
+
 		# read request line
 		reqline = line = f.readline()
 		split = line.rstrip().split(' ')
@@ -64,9 +64,9 @@ class Handler(socketserver.BaseRequestHandler):
 		request_host = None
 		pac_host = '" + location.host + ":' + str(LISTEN_PORT) # may not actually work
 
-		effective_date = DATE
+		effective_date = str(DATE)
 		if USE_FLUX:
-			effective_date = self.get_flux_modified_date()
+			effective_date = str(self.get_flux_modified_date())
 			self.shared_state.cached_date = effective_date
 
 		auth = None
@@ -145,7 +145,7 @@ class Handler(socketserver.BaseRequestHandler):
 				else:
 					# Pass requests through to web.archive.org. Required for QUICK_IMAGES.
 					split = request_url.split('/')
-					effective_date = split[4]
+					effective_date = str(split[4])
 					archived_url = '/'.join(split[5:])
 					_print('[>] [QI]', effective_date, archived_url)
 			elif GEOCITIES_FIX and hostname == 'www.geocities.com':
@@ -184,7 +184,8 @@ class Handler(socketserver.BaseRequestHandler):
 					else:
 						# Not in cache => contact API.
 						try:
-							availability = json.loads(urllib.request.urlopen('https://archive.org/wayback/available?url=' + urllib.parse.quote_plus(availability_url) + '&timestamp=' + effective_date[:14], timeout=10).read())
+							wayback_api_url = 'https://archive.org/wayback/available?url=' + urllib.parse.quote_plus(availability_url) + '&timestamp=' + effective_date[:14]
+							availability = json.loads(urllib.request.urlopen(wayback_api_url, timeout=10).read())
 							closest = availability.get('archived_snapshots', {}).get('closest', {})
 							new_date = closest.get('timestamp', None)
 						except:
@@ -460,7 +461,7 @@ class Handler(socketserver.BaseRequestHandler):
 		# Finish and send the request.
 		response += '\r\n\r\n'
 		self.request.sendall(response.encode('utf8', 'ignore'))
-	
+
 	def send_error_page(self, http_version, code, reason):
 		"""Generate an error page."""
 
@@ -481,7 +482,7 @@ class Handler(socketserver.BaseRequestHandler):
 			description = 'WaybackProxy\'s transparent mode requires an HTTP/1.1 compliant client.'
 		else: # another error
 			description = 'Unknown error. The Wayback Machine may be experiencing technical difficulties.'
-		
+
 		# Read error page file.
 		try:
 			f = open('error.html', 'r', encoding='utf8', errors='ignore')
@@ -520,7 +521,7 @@ class Handler(socketserver.BaseRequestHandler):
 		# send redirect page and stop
 		self.request.sendall('{0} {1} Found\r\nLocation: {2}\r\nContent-Type: text/html\r\nContent-Length: {3}\r\n\r\n{4}'.format(http_version, code, target, len(redirectpage), redirectpage).encode('utf8', 'ignore'))
 		self.request.close()
-	
+
 	def handle_settings(self, query):
 		"""Generate the settings page."""
 
@@ -539,7 +540,7 @@ class Handler(socketserver.BaseRequestHandler):
 				GEOCITIES_FIX = 'gcFix' in parsed
 				QUICK_IMAGES = 'quickImages' in parsed
 				CONTENT_TYPE_ENCODING = 'ctEncoding' in parsed
-		
+
 		# send the page and stop
 		settingspage  = 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n'
 		settingspage += '<html><head><title>WaybackProxy Settings</title></head><body><p><b>'

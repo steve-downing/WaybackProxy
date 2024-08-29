@@ -531,10 +531,7 @@ class Handler(socketserver.BaseRequestHandler):
 			parsed = urllib.parse.parse_qs(query)
 
 			if 'date' in parsed and 'dateTolerance' in parsed:
-				if DATE != parsed['date'][0]:
-					DATE = parsed['date'][0]
-					self.shared_state.date_cache.clear()
-					self.shared_state.availability_cache.clear()
+				DATE = parsed['date'][0]
 				if DATE_TOLERANCE != parsed['dateTolerance'][0]:
 					DATE_TOLERANCE = parsed['dateTolerance'][0]
 				GEOCITIES_FIX = 'gcFix' in parsed

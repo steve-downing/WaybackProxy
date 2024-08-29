@@ -370,6 +370,9 @@ class Handler(socketserver.BaseRequestHandler):
 				# Fix base tag.
 				data = re.sub(b'''(<base\\s+[^>]*href=["']?)(?:(?:https?:)?//web.archive.org)?/web/[^/]+/(?:[^:/]+://)?''', b'\\1http://', data, flags=re.I + re.S)
 
+				# Remove the scripts and stylesheets that Wayback injects.
+				data = re.sub(b'''<script .*<!-- End Wayback Rewrite JS Include -->''', b'', data, flags=re.S)
+
 				# Remove extraneous :80 from links.
 				data = re.sub(b'((?:(?:https?:)?//web.archive.org)?/web/)([^/]+)/([^/:]+)://([^/:]+):80/', b'\\1\\2/\\3://\\4/', data)
 				# Fix links.

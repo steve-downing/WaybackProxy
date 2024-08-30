@@ -282,6 +282,7 @@ class Handler(socketserver.BaseRequestHandler):
 				return self.send_redirect_page(http_version, archived_url, 301)
 
 			# Check if the date is within tolerance.
+			requested_date = ''
 			if DATE_TOLERANCE != None:
 				match = re.search('''//web\\.archive\\.org/web/([0-9]+)''', conn.geturl())
 				if match:
@@ -370,8 +371,10 @@ class Handler(socketserver.BaseRequestHandler):
 				# Fix base tag.
 				data = re.sub(b'''(<base\\s+[^>]*href=["']?)(?:(?:https?:)?//web.archive.org)?/web/[^/]+/(?:[^:/]+://)?''', b'\\1http://', data, flags=re.I + re.S)
 
-				# Remove the scripts and stylesheets that Wayback injects.
-				data = re.sub(b'''<script .*<!-- End Wayback Rewrite JS Include -->''', b'', data, flags=re.S)
+				# Remove the scripts and stylesheets that Wayback injects and add comments about the requested and actual dates.
+				date_comments = f'''\n<!-- Requested date: {effective_date} -->\n<!-- Actual date: {requested_date} -->'''
+				date_comments = date_comments.encode("utf-8")
+				data = re.sub(b'''<script .*<!-- End Wayback Rewrite JS Include -->''', date_comments, data, flags=re.S)
 
 				# Remove extraneous :80 from links.
 				data = re.sub(b'((?:(?:https?:)?//web.archive.org)?/web/)([^/]+)/([^/:]+)://([^/:]+):80/', b'\\1\\2/\\3://\\4/', data)
